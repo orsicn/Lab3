@@ -1,7 +1,29 @@
+
+/* Map Title Styles */
+h1 { 
+  /* Map Title Styles */
+  font-family: 'Cinzel', sans-serif; /* Primary sans-serif options */
+  font-weight: 700;          /* Bold for impact */
+  font-size: 36px;           /* Adjust as needed */
+  text-transform: uppercase; /* All caps for professional look */
+  color: #1a1a1a;            /* Dark gray for contrast */
+  text-align: center;        /* Centered above map */
+  margin: 20px 0;            /* Space above and below */
+  letter-spacing: 1px;       /* Slight spacing for readability */
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* Subtle depth effect */
+}
+
+/* Optional: add a secondary effect for “science-y” vibe */
+.map-title.glow {
+  text-shadow: 0 0 5px rgba(0, 123, 255, 0.7), 0 0 10px rgba(0, 123, 255, 0.5);
+  color: #0056b3; /* Slight blue tint */
+}
+
 #map {
-  height: 700px;
+  height:700px;
   width: 100%;
   border: 3px solid red;
+
 }
 
 #map2 {

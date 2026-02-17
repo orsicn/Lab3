@@ -1,18 +1,26 @@
-var map = L.map('map').setView([40, -95], 4);
+var map =  L.map('map').setView([15, -15], 2
+); 
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors'
+L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}{r}.{ext}', {
+	minZoom: 0,
+	maxZoom: 18,
+	attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	ext: 'png'
 }).addTo(map);
 
 console.log("Map1 initialized");
 
+
 // Function to scale circle radius by magnitude
 function getRadius(mag) {
-  return mag ? mag * 4 : 1; // scale factor, adjust as needed
+  // Linear scaling with multiplier
+  return (mag - 7.5) * 10; // subtract baseline 7.5 to exaggerate differences
+  // Example: mag 8 → (8-7.5)*10 = 5
+  //          mag 9 → (9-7.5)*10 = 15
 }
 
 // Load USGS GeoJSON
-fetch("data/earthquakes30.geojson")
+fetch("data/eqpacific.geojson")
   .then(response => response.json())
   .then(data => {
     L.geoJSON(data, {
@@ -33,7 +41,33 @@ fetch("data/earthquakes30.geojson")
         `);
       }
     }).addTo(map);
+    
+// Add legend
+var legend = L.control({ position: "bottomright" });
+
+legend.onAdd = function(map) {
+  var div = L.DomUtil.create("div", "info legend");
+  div.innerHTML = "<strong>Magnitude</strong><br>";
+
+  // Example magnitudes for legend circles
+  var mags = [8, 8.5, 9, 9.5];
+  var fillColor = "#ff7800"; // your circleMarker fill color
+
+  mags.forEach(function(mag) {
+    var radius = getRadius(mag);
+    // Create a circle using inline <i> styled with width/height
+    div.innerHTML +=
+      '<i style="background:' + fillColor + 
+      '; width:' + (radius*2) + 'px; height:' + (radius*2) + 'px; display: inline-block; border-radius: 50%; margin-right: 8px; vertical-align: middle;"></i>' +
+      mag + '<br>';
+  });
+
+  return div;
+};
+
+legend.addTo(map);
   })
+
   .catch(error => console.error("Error loading GeoJSON:", error));
 
 //map 2
