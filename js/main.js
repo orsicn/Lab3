@@ -1,19 +1,18 @@
 var map = L.map('map').setView([40, -95], 4);
 
-var Stadia_StamenTerrainBackground = L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}{r}.{ext}', {
-	minZoom: 0,
-	maxZoom: 18,
-	attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-	ext: 'png'
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-   //Function to scale circle radius by magnitude
+console.log("Map1 initialized");
+
+// Function to scale circle radius by magnitude
 function getRadius(mag) {
-  return mag ? mag * 4 : 1;    //scale factor, adjust as needed
+  return mag ? mag * 4 : 1; // scale factor, adjust as needed
 }
 
-   //Load USGS GeoJSON
-fetch("data/8EQPacific.geojson")
+// Load USGS GeoJSON
+fetch("data/earthquakes30.geojson")
   .then(response => response.json())
   .then(data => {
     L.geoJSON(data, {
@@ -28,7 +27,7 @@ fetch("data/8EQPacific.geojson")
       },
       onEachFeature: function(feature, layer) {
         layer.bindPopup(`
-          <strong>${feature.properties.place}</strong></br>
+          <strong>${feature.properties.place}</strong><br>
           Magnitude: ${feature.properties.mag}<br>
           Depth: ${feature.geometry.coordinates[2]} km
         `);
@@ -37,8 +36,54 @@ fetch("data/8EQPacific.geojson")
   })
   .catch(error => console.error("Error loading GeoJSON:", error));
 
-    
-    
+//map 2
+var map2 = L.map('map2').setView([37.8, -96], 4);
+
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map2);
+
+// force Leaflet to recalc container size
+setTimeout(() => {
+  map2.invalidateSize();
+}, 0);
+
+
+// Define color function OUTSIDE
+function getColor(d) {
+  return d > 1000 ? '#800026' :
+         d > 500  ? '#BD0026' :
+         d > 200  ? '#E31A1C' :
+         d > 100  ? '#FC4E2A' :
+         d > 50   ? '#FD8D3C' :
+         d > 20   ? '#FEB24C' :
+         d > 10   ? '#FED976' :
+                    '#FFEDA0';
+}
+
+// Define style function OUTSIDE
+function style(feature) {
+  return {
+    fillColor: getColor(feature.properties.density),
+    weight: 2,
+    opacity: 1,
+    color: 'white',
+    dashArray: '3',
+    fillOpacity: 0.7
+  };
+}
+
+
+// Fetch GeoJSON properly
+fetch("data/states.geojson")
+  .then(response => response.json())
+  .then(data => {
+    L.geoJSON(data, {
+      style: style
+    }).addTo(map2);
+  })
+  .catch(error => console.error("Error loading states:", error));
 
 
    //Add all scripts to the JS folder
