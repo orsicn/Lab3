@@ -1,5 +1,6 @@
 var map =  L.map('map').setView([15, -15], 2
 ); 
+
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap contributors'
@@ -66,54 +67,90 @@ legend.addTo(map);
 
   .catch(error => console.error("Error loading GeoJSON:", error));
 
-//map 2
-var map2 = L.map('map2').setView([37.8, -96], 4);
+// Map 2
+var map2 = L.map('map2').setView([15, -15], 2);
+
 
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map2);
 
-// force Leaflet to recalc container size
-setTimeout(() => {
-  map2.invalidateSize();
-}, 0);
+Promise.all([
+  fetch("data/tectonicbound.geojson").then(res => res.json()),
+  fetch("data/eqpacific.geojson").then(res => res.json())
+])
+.then(([polygonsGeoJSON, earthquakesGeoJSON]) => {
+
+  // Aggregate earthquake data per polygon
+  polygonsGeoJSON.features.forEach(poly => {
+    if (poly.geometry && (poly.geometry.type === "Polygon" || poly.geometry.type === "MultiPolygon")) {
+      let ptsWithin = turf.pointsWithinPolygon(earthquakesGeoJSON, poly);
+      poly.properties.count = ptsWithin.features.length;
+      poly.properties.maxMag = ptsWithin.features.length
+        ? Math.max(...ptsWithin.features.map(f => f.properties.mag))
+        : 0;
+    } else {
+      poly.properties.count = 0;
+      poly.properties.maxMag = 0;
+    }
+  
+  });
+
+  // Add choropleth layer
+var choroplethLayer = L.geoJSON(polygonsGeoJSON, {
+  style: function(feature) {
+    let count = feature.properties.count;
+    return {
+      fillColor: count > 13 ? '#5c011c' :
+                 count >= 8 ? '#d3173c' :
+                 count >= 4 ? '#e15c04' :
+                 count >= 1 ? '#f6d014' :
+                              '#FFEDA0',
+      weight: 1,
+      color: 'black',
+      fillOpacity: 0.7
+    };
+  },
+  onEachFeature: function(feature, layer) {
+    layer.bindPopup(`
+      <strong>${feature.properties.PlateName || "Plate"}</strong><br>
+      M8+ Earthquakes: ${feature.properties.count}<br>
+      Max Magnitude: ${feature.properties.maxMag}
+    `);
+  }
+}).addTo(map2);   
 
 
-// Define color function OUTSIDE
-function getColor(d) {
-  return d > 1000 ? '#800026' :
-         d > 500  ? '#BD0026' :
-         d > 200  ? '#E31A1C' :
-         d > 100  ? '#FC4E2A' :
-         d > 50   ? '#FD8D3C' :
-         d > 20   ? '#FEB24C' :
-         d > 10   ? '#FED976' :
-                    '#FFEDA0';
-}
+// Legend
 
-// Define style function OUTSIDE
-function style(feature) {
-  return {
-    fillColor: getColor(feature.properties.density),
-    weight: 2,
-    opacity: 1,
-    color: 'white',
-    dashArray: '3',
-    fillOpacity: 0.7
-  };
-}
+var legend = L.control({position: 'bottomright'});
 
+legend.onAdd = function (map) {
+    var div = L.DomUtil.create('div', 'info legend');
 
-// Fetch GeoJSON properly
-fetch("data/states.geojson")
-  .then(response => response.json())
-  .then(data => {
-    L.geoJSON(data, {
-      style: style
-    }).addTo(map2);
-  })
-  .catch(error => console.error("Error loading states:", error));
+    // Define thresholds to match choropleth
+    var grades = [0, 1, 4, 8, 14]; 
+    var colors = ['#FFEDA0', '#f6d014', '#e15c04', '#d3173c', '#5c011c'];
 
+    // Build labels
+    var labels = [];
+    for (var i = 0; i < grades.length - 1; i++) {
+        var from = grades[i];
+        var to = grades[i + 1] - 1;
+        labels.push(
+            '<i style="background:' + colors[i] + '"></i> ' +
+            from + '&ndash;' + to
+        );
+    }
+    // Last grade (14+)
+    labels.push('<i style="background:' + colors[colors.length-1] + '"></i> 14+');
 
-   //Add all scripts to the JS folder
+    div.innerHTML = labels.join('<br>');
+    return div;
+};
+
+legend.addTo(map2);
+
+})
+.catch(error => console.error("Error loading GeoJSON:", error));  
